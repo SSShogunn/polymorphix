@@ -4,6 +4,57 @@ client/.env
 client/dist
 
 
-server/venv
-server/__pycache__
+# Backend (Python/FastAPI)
+server/venv/
+server/.venv/
+.venv/
+venv/
+env/
+ENV/
+
+# Python cache and bytecode
+server/__pycache__/
+server/**/__pycache__/
+server/**/*.pyc
+server/**/*.pyo
+server/**/*.pyd
+*.py[cod]
+*$py.class
+
+# Environment variables
 server/.env
+server/.env.local
+server/.env.*.local
+
+# Database
+server/*.db
+server/*.sqlite
+server/*.sqlite3
+
+# Logs
+server/logs/
+server/**/*.log
+server/uvicorn.log
+
+# Testing
+server/.pytest_cache/
+server/.coverage
+server/htmlcov/
+server/.tox/
+
+# Distribution / packaging
+server/dist/
+server/build/
+server/*.egg-info/
+server/.eggs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
