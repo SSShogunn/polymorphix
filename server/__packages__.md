@@ -18,3 +18,6 @@ pip install python-jose[cryptography] passlib[bcrypt] python-dotenv
 
 # Utils
 pip install pydantic pydantic-settings httpx aiofiles
+
+# Database
+pip install supabase
