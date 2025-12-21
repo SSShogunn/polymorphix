@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, responses, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends
 from supabase import create_client, Client
 from app.config import settings
 from app.schemas.auth import UserSignUp, UserSignIn, AuthResponse, UserResponse
@@ -61,7 +61,7 @@ def sign_in(user_data: UserSignIn):
                 "created_at": response.user.created_at,
             },
         }
-    except Exception as e:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password"
         )
@@ -93,7 +93,7 @@ async def refresh_token(current_user: dict = Depends(get_current_user)):
 
         return {"access_token": response.session.access_token, "token_type": "bearer"}
 
-    except Exception as e:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not refresh token"
         )
