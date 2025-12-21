@@ -87,7 +87,7 @@ async def get_current_user_info(current_user: dict = Depends(get_current_user)):
 
 
 @router.post("/refresh")
-async def refresh_token(current_user: dict = Depends(get_current_user)):
+async def refresh_token():
     try:
         response = supabase.auth.refresh_session()
 

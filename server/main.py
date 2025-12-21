@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import auth
+from app.routes import auth, videos
 from app.config import settings
 
 app = FastAPI(title=settings.APP_NAME)
@@ -14,6 +14,7 @@ app.add_middleware(
 )
 
 app.include_router(auth.router)
+app.include_router(videos.router)
 
 @app.get("/")
 async def root():

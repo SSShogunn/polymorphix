@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "Bash(npx shadcn@latest add:*)",
+      "Bash(tree:*)"
+    ]
+  }
+}
