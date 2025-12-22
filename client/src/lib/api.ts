@@ -21,32 +21,16 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor to handle token refresh
+// Response interceptor to handle expired tokens
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const originalRequest = error.config;
-
-    // If 401 and we haven't tried to refresh yet
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-
-      try {
-        const response = await api.post('/auth/refresh');
-        const { access_token } = response.data;
-
-        localStorage.setItem('access_token', access_token);
-
-        // Retry the original request with new token
-        originalRequest.headers.Authorization = `Bearer ${access_token}`;
-        return api(originalRequest);
-      } catch (refreshError) {
-        // Refresh failed, clear auth state
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('user');
-        window.location.href = '/auth';
-        return Promise.reject(refreshError);
-      }
+    // If token is expired (401), clear auth and redirect to login
+    if (error.response?.status === 401) {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('user');
+      window.location.href = '/auth';
     }
 
     return Promise.reject(error);
@@ -88,9 +72,6 @@ export const authAPI = {
 
   getCurrentUser: () =>
     api.get<User>('/auth/me'),
-
-  refreshToken: () =>
-    api.post<{ access_token: string; token_type: string }>('/auth/refresh'),
 };
 
 export interface FileUploadData {

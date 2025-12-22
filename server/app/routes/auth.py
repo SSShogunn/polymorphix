@@ -1,9 +1,14 @@
-from fastapi import APIRouter, HTTPException, status, Depends
-from supabase import create_client, Client
-from app.config import settings
-from app.schemas.auth import UserSignUp, UserSignIn, AuthResponse, UserResponse
-from app.dependencies import get_current_user
+from fastapi import APIRouter, Depends, HTTPException, status
+from supabase import Client, create_client
 
+from app.config import settings
+from app.dependencies import get_current_user
+from app.schemas.auth import (
+    AuthResponse,
+    UserResponse,
+    UserSignIn,
+    UserSignUp,
+)
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -84,16 +89,3 @@ async def get_current_user_info(current_user: dict = Depends(get_current_user)):
         "email": current_user.email,
         "created_at": str(current_user.created_at),
     }
-
-
-@router.post("/refresh")
-async def refresh_token():
-    try:
-        response = supabase.auth.refresh_session()
-
-        return {"access_token": response.session.access_token, "token_type": "bearer"}
-
-    except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not refresh token"
-        )

@@ -5,16 +5,16 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
+import axios from "axios";
+import { Label } from "@radix-ui/react-label";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
-import { fileManagementAPI, type FileUploadData } from "@/lib/api";
 
 type UploadFormData = {
   title: string;
@@ -24,28 +24,21 @@ type UploadFormData = {
 
 export default function Home() {
   const { signOut } = useAuth();
+  const { register, handleSubmit, reset } = useForm<UploadFormData>();
 
-  const { register, handleSubmit, reset } = useForm<FileUploadData>();
-
-  const uploadFile = async (data: FileUploadData ) => {
-    console.log(data.file)
+  const onSubmit = async (data: UploadFormData) => {
     const formData = new FormData();
-
     formData.append("title", data.title);
     formData.append("description", data.description);
-    if (data.file && data.file instanceof File) {
-      formData.append("file", data.file);
-    } else if (data.file && (data.file as any).length > 0) {
-      formData.append("file", data.file[0]);
-    }
+    formData.append("file", data.file[0]);
 
-    await fileManagementAPI.uploadFile({
-      title: data.title,
-      description: data.description,
-      file: (data.file instanceof File ? data.file : data.file[0]),
-    });
+    const res = await axios.post(
+      "http://localhost:8000/video/upload",
+      formData
+    );
 
-    reset(); // clear form after success
+    console.log(res.data);
+    reset();
   };
 
   const handleSignOut = async () => {
@@ -80,10 +73,7 @@ export default function Home() {
               </DialogDescription>
             </DialogHeader>
 
-            <form
-              className="space-y-6 mt-4"
-              onSubmit={handleSubmit(uploadFile)}
-            >
+            <form className="space-y-6 mt-4" onSubmit={handleSubmit(onSubmit)}>
               <div className="space-y-2">
                 <Label htmlFor="title">Title</Label>
                 <Input
