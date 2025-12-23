@@ -1,0 +1,31 @@
+services:
+  backend:
+    container_name: polymorphix-backend
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    env_file:
+      - server/.env
+    volumes:
+      - ./server:/server  
+    command: >
+      uv run uvicorn main:app
+      --host 0.0.0.0
+      --port 8000
+      --reload
+
+  frontend:
+    container_name: polymorphix-frontend
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    env_file:
+      - client/.env 
+    volumes:
+      - ./client:/client
+      - /client/node_modules
+    command: npm run dev    
