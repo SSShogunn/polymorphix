@@ -10,11 +10,11 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
-import axios from "axios";
 import { Label } from "@radix-ui/react-label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
+import { fileManagementAPI } from "@/lib/api";
 
 type UploadFormData = {
   title: string;
@@ -32,10 +32,7 @@ export default function Home() {
     formData.append("description", data.description);
     formData.append("file", data.file[0]);
 
-    const res = await axios.post(
-      "http://localhost:8000/video/upload",
-      formData
-    );
+    const res = await fileManagementAPI.uploadFile(formData);
 
     console.log(res.data);
     reset();

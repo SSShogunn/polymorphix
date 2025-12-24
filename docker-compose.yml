@@ -1,21 +1,4 @@
 services:
-  backend:
-    container_name: polymorphix-backend
-    build:
-      context: ./server
-      dockerfile: Dockerfile
-    ports:
-      - "8000:8000"
-    env_file:
-      - server/.env
-    volumes:
-      - ./server:/server  
-    command: >
-      uv run uvicorn main:app
-      --host 0.0.0.0
-      --port 8000
-      --reload
-
   frontend:
     container_name: polymorphix-frontend
     build:
@@ -28,4 +11,27 @@ services:
     volumes:
       - ./client:/client
       - /client/node_modules
-    command: npm run dev    
+    command: npm run dev
+
+  backend:
+    container_name: polymorphix-backend
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    env_file:
+      - server/.env
+    volumes:
+      - ./server:/server 
+      - polymorphix_shared_data:/video_queue
+    command: >
+      uv run uvicorn main:app
+      --host 0.0.0.0
+      --port 8080
+      --reload
+
+volumes:
+  polymorphix_shared_data:
+    name: polymorphix_shared_data
+    driver: local

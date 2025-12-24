@@ -74,13 +74,9 @@ export const authAPI = {
     api.get<User>('/auth/me'),
 };
 
-export interface FileUploadData {
-  title: string,
-  description: string,
-  file : File,
-}
-
 export const fileManagementAPI = {
-  uploadFile : (data : FileUploadData) => 
-    api.post("/video/upload", data)
-}
+  uploadFile: (data: FormData) =>
+    api.post("/videos/upload", data, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }),
+};
