@@ -12,6 +12,8 @@ services:
       - ./client:/client
       - /client/node_modules
     command: npm run dev
+    networks:
+      - polymorphix-network
 
   backend:
     container_name: polymorphix-backend
@@ -30,8 +32,40 @@ services:
       --host 0.0.0.0
       --port 8080
       --reload
+    networks:
+      - polymorphix-network
 
+
+  rabbitmq:
+    container_name: "polymorphix-rabbitmq"
+    image: rabbitmq:4.2.2-management-alpine
+    ports:
+      - "5672:5672"   
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: polymorphix
+      RABBITMQ_DEFAULT_PASS: 8e01ea1aed98288f4219ad061bb432be
+    volumes:
+      - polymorphix_rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - polymorphix-network
+
+    
 volumes:
   polymorphix_shared_data:
     name: polymorphix_shared_data
     driver: local
+
+  polymorphix_rabbitmq_data:
+    name: polymorphix_rabbitmq_data
+    driver: local  
+
+networks:
+  polymorphix-network:
+    name: polymorphix-network
+    driver: bridge   
