@@ -11,6 +11,7 @@ services:
     volumes:
       - ./client:/client
       - /client/node_modules
+      - ./client/.env:/client/.env
     command: npm run dev
     networks:
       - polymorphix-network
@@ -27,6 +28,7 @@ services:
     volumes:
       - ./server:/server 
       - polymorphix_shared_data:/video_queue
+      - ./server/.env:/server/.env
     command: >
       uv run uvicorn main:app
       --host 0.0.0.0
