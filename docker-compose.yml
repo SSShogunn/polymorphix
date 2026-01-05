@@ -5,9 +5,9 @@ services:
       context: ./client
       dockerfile: Dockerfile
     ports:
-      - "5173:5173"
+      - "3000:3000"
     env_file:
-      - client/.env 
+      - client/.env
     volumes:
       - ./client:/client
       - /client/node_modules
@@ -26,7 +26,7 @@ services:
     env_file:
       - server/.env
     volumes:
-      - ./server:/server 
+      - ./server:/server
       - polymorphix_shared_data:/video_queue
       - ./server/.env:/server/.env
     command: >
@@ -37,12 +37,11 @@ services:
     networks:
       - polymorphix-network
 
-
   rabbitmq:
     container_name: "polymorphix-rabbitmq"
     image: rabbitmq:4.2.2-management-alpine
     ports:
-      - "5672:5672"   
+      - "5672:5672"
       - "15672:15672"
     environment:
       RABBITMQ_DEFAULT_USER: polymorphix
@@ -57,7 +56,6 @@ services:
     networks:
       - polymorphix-network
 
-    
 volumes:
   polymorphix_shared_data:
     name: polymorphix_shared_data
@@ -65,9 +63,9 @@ volumes:
 
   polymorphix_rabbitmq_data:
     name: polymorphix_rabbitmq_data
-    driver: local  
+    driver: local
 
 networks:
   polymorphix-network:
     name: polymorphix-network
-    driver: bridge   
+    driver: bridge

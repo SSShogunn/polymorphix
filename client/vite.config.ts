@@ -1,6 +1,6 @@
 import react from "@vitejs/plugin-react";
-import path from "path"
-import tailwindcss from "@tailwindcss/vite"
+import path from "path";
+import tailwindcss from "@tailwindcss/vite";
 
 export default {
   plugins: [react(), tailwindcss()],
@@ -11,6 +11,6 @@ export default {
   },
   server: {
     host: "0.0.0.0",
-    port: 5173,
+    port: 3000,
   },
 };
