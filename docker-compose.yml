@@ -27,6 +27,7 @@ services:
       - server/.env
     volumes:
       - ./server:/server
+      - /server/.venv
       - polymorphix_shared_data:/video_queue
       - ./server/.env:/server/.env
     command: >
@@ -58,6 +59,23 @@ services:
     networks:
       - polymorphix-network
 
+  celery_worker:
+    container_name: polymorphix-celery-worker
+    build:
+      context: ./server
+      dockerfile : Dockerfile
+    command: celery -A app.tasks.celery_app worker --loglevel=info
+    volumes: 
+      - ./server:/server
+      - /server/.venv
+      - polymorphix_shared_data:/video_queue
+      - ./server/.env:/server/.env 
+    depends_on:
+      - rabbitmq
+      - backend
+    networks:
+      - polymorphix-network
+
 volumes:
   polymorphix_shared_data:
     name: polymorphix_shared_data
@@ -66,6 +84,8 @@ volumes:
   polymorphix_rabbitmq_data:
     name: polymorphix_rabbitmq_data
     driver: local
+
+
 
 networks:
   polymorphix-network:
