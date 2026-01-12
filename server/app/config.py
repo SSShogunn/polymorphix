@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     
     REDIS_URL: str = "redis://localhost:6379/0"
+    CELERY_BROKER_URL: str = "pyamqp://guest:guest@rabbitmq:5672//"
     
     class Config:
         env_file = ".env"

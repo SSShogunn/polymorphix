@@ -7,6 +7,7 @@ from app.database import get_db
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.video import Video as VideoModel
+from app.tasks.video_tasks import process_video
 
 router = APIRouter(prefix="/videos", tags=["Video Management"])
 
@@ -52,6 +53,13 @@ async def upload(
     db_session.add(video)
     await db_session.commit()
     await db_session.refresh(video)
+
+    _ = process_video.delay(
+            video_id=video.id,
+            user_id=current_user.id,
+            file_path=str(file_path),
+            original_filename=file.filename
+        )
 
     return {
         "id": str(video.id),
