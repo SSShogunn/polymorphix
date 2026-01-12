@@ -64,12 +64,12 @@ services:
     build:
       context: ./server
       dockerfile : Dockerfile
-    command: celery -A app.tasks.celery_app worker --loglevel=info
+    command: uv run celery -A app.tasks.celery_app worker --loglevel=info
+    environment:
+      - CELERY_BROKER_URL=pyamqp://guest:guest@rabbitmq//
     volumes: 
       - ./server:/server
-      - /server/.venv
       - polymorphix_shared_data:/video_queue
-      - ./server/.env:/server/.env 
     depends_on:
       - rabbitmq
       - backend
@@ -84,8 +84,6 @@ volumes:
   polymorphix_rabbitmq_data:
     name: polymorphix_rabbitmq_data
     driver: local
-
-
 
 networks:
   polymorphix-network:
