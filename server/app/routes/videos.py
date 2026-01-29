@@ -1,13 +1,12 @@
 from fastapi import APIRouter, UploadFile, Depends, Form, File, HTTPException
-from app.dependencies import get_current_user
 from pathlib import Path
 import shutil
 import uuid
-from app.database import get_db
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.models.video import Video as VideoModel
+
+from app.database import db
+from app.dependencies import get_current_user
 from app.tasks.video_tasks import process_video
+from prisma.models import User
 
 router = APIRouter(prefix="/videos", tags=["Video Management"])
 
@@ -17,8 +16,7 @@ UPLOAD_DIR.mkdir(exist_ok=True)
 
 @router.post("/upload")
 async def upload(
-    current_user: dict = Depends(get_current_user),
-    db_session: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
     file: UploadFile = File(...),
     title: str = Form(...),
     description: str = Form(...),
@@ -40,45 +38,41 @@ async def upload(
 
     file_size = file_path.stat().st_size
 
-    video = VideoModel(
-        user_id=current_user.id,
-        title=title,
-        description=description,
-        original_filename=file.filename,
-        file_size=file_size,
-        status="uploading",
-        raw_video_url=str(file_path),
+    video = await db.video.create(
+        data={
+            "userId": current_user.id,
+            "title": title,
+            "description": description,
+            "originalFilename": file.filename,
+            "fileSize": file_size,
+            "status": "uploading",
+            "rawVideoUrl": str(file_path),
+        }
     )
 
-    db_session.add(video)
-    await db_session.commit()
-    await db_session.refresh(video)
-
     _ = process_video.delay(
-            video_id=video.id,
-            user_id=current_user.id,
-            file_path=str(file_path),
-            original_filename=file.filename
-        )
+        video_id=video.id,
+        user_id=current_user.id,
+        file_path=str(file_path),
+        original_filename=file.filename,
+    )
 
     return {
-        "id": str(video.id),
+        "id": video.id,
         "title": video.title,
         "description": video.description,
         "original_name": file.filename,
         "stored_as": file_name,
         "content_type": file.content_type,
-        "file_size": video.file_size,
+        "file_size": video.fileSize,
         "status": video.status,
-        "created_at": video.created_at.isoformat() if video.created_at else None,
+        "created_at": video.createdAt.isoformat() if video.createdAt else None,
     }
 
 
 @router.get("")
 async def get_videos(
-    db_session: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ):
-    result = await db_session.execute(select(VideoModel))
-    videos = result.scalars().all()
+    videos = await db.video.find_many(where={"userId": current_user.id})
     return videos

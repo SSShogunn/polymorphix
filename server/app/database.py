@@ -1,13 +1,6 @@
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-from app.config import settings
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from prisma import Prisma
 
-engine = create_async_engine(settings.DATABASE_URL)
-AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+db = Prisma()
 
-Base = declarative_base()
-
-async def get_db():
-    async with AsyncSessionLocal() as session:
-        yield session
+async def get_db() -> Prisma:
+    return db

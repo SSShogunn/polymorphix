@@ -1,10 +1,27 @@
+from contextlib import asynccontextmanager
+
+from app.config import settings
+from app.database import db
+from app.routes import auth, videos
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import auth, videos
-from app.config import settings
-from app.models import Video, VideoFormat, AuthUser
 
-app = FastAPI(title=settings.APP_NAME)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await db.connect()
+    print("Connected to database")
+
+    yield
+
+    await db.disconnect()
+    print("Disconnected from database")
+
+
+app = FastAPI(
+    title=settings.APP_NAME,
+    lifespan=lifespan,
+)
 
 app.add_middleware(
     CORSMiddleware,

@@ -1,91 +1,109 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from supabase import Client, create_client
+import random
 
-from app.config import settings
-from app.dependencies import get_current_user
-from app.schemas.auth import (
-    AuthResponse,
-    UserResponse,
-    UserSignIn,
-    UserSignUp,
+from app.database import db
+from app.dependencies import (
+    create_access_token,
+    get_current_user,
+    hash_password,
+    verify_password,
 )
+from app.schemas.auth import AuthResponse, UserResponse, UserSignIn, UserSignUp
+from fastapi import APIRouter, Depends, HTTPException, status
+from prisma.models import User
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
-
-supabase: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
 
 
 @router.post(
     "/signup", response_model=AuthResponse, status_code=status.HTTP_201_CREATED
 )
-def sign_up(user_data: UserSignUp):
-    try:
-        response = supabase.auth.sign_up(
-            {"email": user_data.email, "password": user_data.password}
+async def sign_up(user_data: UserSignUp):
+    existing_email = await db.user.find_unique(where={"email": user_data.email})
+    if existing_email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already registered",
         )
 
-        if not response.user:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="User Registration Failed",
-            )
+    username = user_data.username
+    if not username:
+        username = user_data.email.split("@")[0].strip() or "user"
+        if len(username) < 3:
+            username = username + "12"
+        username = username[:50]
 
-        return {
-            "access_token": response.session.access_token,
-            "token_type": "bearer",
-            "user": {
-                "id": response.user.id,
-                "email": response.user.email,
-                "created_at": response.user.created_at,
-            },
+    existing_username = await db.user.find_unique(where={"username": username})
+    if existing_username:
+        username = f"{username}{random.randint(100, 999)}"
+
+    user = await db.user.create(
+        data={
+            "email": user_data.email,
+            "username": username,
+            "password": hash_password(user_data.password),
         }
+    )
 
-    except Exception as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    access_token = create_access_token(data={"sub": user.id, "email": user.email})
+
+    return AuthResponse(
+        access_token=access_token,
+        token_type="bearer",
+        user=UserResponse(
+            id=user.id,
+            email=user.email,
+            username=user.username,
+            avatar_url=user.avatarUrl,
+            is_active=user.isActive,
+            created_at=user.createdAt,
+        ),
+    )
 
 
 @router.post("/signin", response_model=AuthResponse)
-def sign_in(user_data: UserSignIn):
-    try:
-        response = supabase.auth.sign_in_with_password(
-            {"email": user_data.email, "password": user_data.password}
-        )
+async def sign_in(user_data: UserSignIn):
+    user = await db.user.find_unique(where={"email": user_data.email})
 
-        if not response.user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid email or password",
-            )
-
-        return {
-            "access_token": response.session.access_token,
-            "token_type": "bearer",
-            "user": {
-                "id": response.user.id,
-                "email": response.user.email,
-                "created_at": response.user.created_at,
-            },
-        }
-    except Exception:
+    if not user:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password",
         )
 
+    if not verify_password(user_data.password, user.password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password",
+        )
 
-@router.post("/signout")
-async def sign_out(current_user: dict = Depends(get_current_user)):
-    try:
-        supabase.auth.sign_out()
-        return {"message": "Successfully signed out"}
+    if not user.isActive:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User account is deactivated",
+        )
 
-    except Exception as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    access_token = create_access_token(data={"sub": user.id, "email": user.email})
 
+    return AuthResponse(
+        access_token=access_token,
+        token_type="bearer",
+        user=UserResponse(
+            id=user.id,
+            email=user.email,
+            username=user.username,
+            avatar_url=user.avatarUrl,
+            is_active=user.isActive,
+            created_at=user.createdAt,
+        ),
+    )
 
 @router.get("/me", response_model=UserResponse)
-async def get_current_user_info(current_user: dict = Depends(get_current_user)):
-    return {
-        "id": current_user.id,
-        "email": current_user.email,
-        "created_at": str(current_user.created_at),
-    }
+async def get_current_user_info(current_user: User = Depends(get_current_user)):
+    return UserResponse(
+        id=current_user.id,
+        email=current_user.email,
+        username=current_user.username,
+        avatar_url=current_user.avatarUrl,
+        is_active=current_user.isActive,
+        created_at=current_user.createdAt,
+    )

@@ -1,4 +1,3 @@
-from app.models.video import Video, VideoFormat
-from app.models.auth import AuthUser
+from prisma.models import User, Video, VideoFormat
 
-__all__ = ["Video", "VideoFormat", "AuthUser"]
+__all__ = ["User", "Video", "VideoFormat"]
