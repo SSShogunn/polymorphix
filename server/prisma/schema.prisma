@@ -1,0 +1,113 @@
+// ============================================================================
+// PRISMA SCHEMA - Polymorphix Database
+// ============================================================================
+//
+// Commands:
+//   prisma generate     - Generate the Python client
+//   prisma db push      - Push schema to DB (dev only, no migrations)
+//   prisma migrate dev  - Create and apply migrations (recommended)
+//   prisma studio       - Open visual database browser
+// ============================================================================
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider             = "prisma-client-py"
+  interface            = "asyncio"
+  recursive_type_depth = 5
+}
+
+// ============================================================================
+// USER - Authentication & Profile
+// ============================================================================
+model User {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email     String   @unique @db.VarChar(255)
+  password  String   @db.VarChar(255) // Hashed password
+  username  String   @unique @db.VarChar(50)
+  avatarUrl String?  @map("avatar_url") @db.Text
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  videos Video[]
+
+  @@map("users")
+}
+
+// ============================================================================
+// VIDEO - Main video entity
+// ============================================================================
+model Video {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  // Owner
+  userId String @map("user_id") @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Basic Info
+  title       String  @db.VarChar(255)
+  description String? @db.Text
+
+  // File Info
+  originalFilename String  @map("original_filename") @db.VarChar(255)
+  fileSize         BigInt? @map("file_size")
+  duration         Int? // Duration in seconds
+
+  // Storage URLs
+  rawVideoUrl  String? @map("raw_video_url") @db.Text
+  thumbnailUrl String? @map("thumbnail_url") @db.Text
+
+  // Processing Status: uploading | processing | ready | failed
+  status             String  @default("uploading") @db.VarChar(20)
+  processingProgress Int     @default(0) @map("processing_progress")
+  errorMessage       String? @map("error_message") @db.Text
+
+  // Stats
+  viewCount Int @default(0) @map("view_count")
+
+  // Timestamps
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  processedAt DateTime? @map("processed_at") @db.Timestamptz
+
+  // Relations
+  formats VideoFormat[]
+
+  @@index([userId], name: "idx_videos_user_id")
+  @@index([status], name: "idx_videos_status")
+  @@map("videos")
+}
+
+// ============================================================================
+// VIDEO FORMAT - Different quality versions (1080p, 720p, etc.)
+// ============================================================================
+model VideoFormat {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  // Parent video
+  videoId String @map("video_id") @db.Uuid
+  video   Video  @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  // Format specs
+  resolution String @db.VarChar(10) // "1080p", "720p", "480p"
+  bitrate    Int // kbps
+  codec      String @default("h264") @db.VarChar(20)
+
+  // Storage URLs (for HLS/DASH streaming)
+  manifestUrl    String? @map("manifest_url") @db.Text
+  segmentBaseUrl String? @map("segment_base_url") @db.Text
+
+  // Metadata
+  fileSize        BigInt? @map("file_size")
+  segmentDuration Int     @default(6) @map("segment_duration")
+  segmentCount    Int?    @map("segment_count")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@map("video_formats")
+}
