@@ -26,15 +26,12 @@ services:
     env_file:
       - server/.env
     volumes:
-      - ./server:/server
-      - /server/.venv
-      - polymorphix_shared_data:/video_queue
+      - ./server/app:/server/app
+      - ./server/main.py:/server/main.py
+      - ./server/prisma:/server/prisma
       - ./server/.env:/server/.env
-    command: >
-      uv run uvicorn main:app
-      --host 0.0.0.0
-      --port 8080
-      --reload
+      - polymorphix_shared_data:/video_queue
+    command: uv run uvicorn main:app --host 0.0.0.0 --port 8080 --reload
     depends_on:
       - rabbitmq
     networks:
@@ -63,12 +60,17 @@ services:
     container_name: polymorphix-celery-worker
     build:
       context: ./server
-      dockerfile : Dockerfile
+      dockerfile: Dockerfile
     command: uv run celery -A app.tasks.celery_app worker --loglevel=info
+    env_file:
+      - server/.env
     environment:
       - CELERY_BROKER_URL=pyamqp://guest:guest@rabbitmq//
-    volumes: 
-      - ./server:/server
+    volumes:
+      - ./server/app:/server/app
+      - ./server/main.py:/server/main.py
+      - ./server/prisma:/server/prisma
+      - ./server/.env:/server/.env
       - polymorphix_shared_data:/video_queue
     depends_on:
       - rabbitmq

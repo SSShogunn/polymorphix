@@ -1,12 +1,16 @@
-FROM python:3.12-slim
+FROM python:3.12
 
-RUN pip install --no-cache-dir uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 WORKDIR /server
 
 COPY pyproject.toml uv.lock ./
 
 RUN uv sync --frozen
+
+COPY prisma ./prisma
+
+RUN uv run prisma generate
 
 COPY app ./app
 COPY main.py .
