@@ -31,6 +31,12 @@ server/*.db
 server/*.sqlite
 server/*.sqlite3
 
+# Prisma
+server/prisma/*.db
+server/prisma/*.db-journal
+server/prisma/engines/
+server/.prisma/
+
 # Logs
 server/logs/
 server/**/*.log
