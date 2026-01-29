@@ -57,6 +57,7 @@ server/.eggs/
 # IDE
 .vscode/
 .idea/
+.claude/
 *.swp
 *.swo
 *~
