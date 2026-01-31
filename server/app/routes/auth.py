@@ -26,12 +26,6 @@ async def sign_up(user_data: UserSignUp):
         )
 
     username = user_data.username
-    if not username:
-        username = user_data.email.split("@")[0].strip() or "user"
-        if len(username) < 3:
-            username = username + "12"
-        username = username[:50]
-
     existing_username = await db.user.find_unique(where={"username": username})
     if existing_username:
         username = f"{username}{random.randint(100, 999)}"

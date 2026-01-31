@@ -12,7 +12,7 @@ export default function Auth() {
   const { signIn, signUp } = useAuth();
 
   const [signInForm, setSignInForm] = useState({ email: '', password: '' });
-  const [signUpForm, setSignUpForm] = useState({ email: '', password: '' });
+  const [signUpForm, setSignUpForm] = useState({ username: '', email: '', password: '' });
   const [signInError, setSignInError] = useState('');
   const [signUpError, setSignUpError] = useState('');
   const [signInLoading, setSignInLoading] = useState(false);
@@ -110,6 +110,23 @@ export default function Auth() {
 
             <TabsContent value="signup">
               <form onSubmit={handleSignUp} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="signup-username">Username</Label>
+                  <Input
+                    id="signup-username"
+                    type="text"
+                    placeholder="johndoe"
+                    minLength={3}
+                    maxLength={50}
+                    value={signUpForm.username}
+                    onChange={(e) =>
+                      setSignUpForm({ ...signUpForm, username: e.target.value })
+                    }
+                    required
+                    disabled={signUpLoading}
+                  />
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="signup-email">Email</Label>
                   <Input

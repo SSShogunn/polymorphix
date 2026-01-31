@@ -40,6 +40,7 @@ api.interceptors.response.use(
 export interface User {
   id: string;
   email: string;
+  username: string;
   created_at: string;
 }
 
@@ -50,6 +51,7 @@ export interface AuthResponse {
 }
 
 export interface SignUpData {
+  username: string;
   email: string;
   password: string;
 }
