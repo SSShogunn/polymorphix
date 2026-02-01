@@ -76,9 +76,51 @@ export const authAPI = {
     api.get<User>('/auth/me'),
 };
 
+// Video types (match backend Prisma serialization)
+export interface VideoFormat {
+  id: string;
+  videoId: string;
+  resolution: string;
+  bitrate: number;
+  codec: string;
+  videoUrl: string | null;
+  fileSize: number | null;
+  createdAt: string;
+}
+
+export interface Video {
+  id: string;
+  userId: string;
+  title: string;
+  description: string | null;
+  originalFilename: string;
+  fileSize: number | null;
+  duration: number | null;
+  rawVideoUrl: string | null;
+  thumbnailUrl: string | null;
+  status: string;
+  processingProgress: number;
+  errorMessage: string | null;
+  viewCount: number;
+  createdAt: string;
+  updatedAt: string;
+  processedAt: string | null;
+  formats?: VideoFormat[];
+}
+
+export interface DeleteAllVideosResponse {
+  deleted: number;
+  message: string;
+}
+
 export const fileManagementAPI = {
   uploadFile: (data: FormData) =>
     api.post("/videos/upload", data, {
       headers: { "Content-Type": "multipart/form-data" },
     }),
+};
+
+export const videosAPI = {
+  getVideos: () => api.get<Video[]>("/videos"),
+  deleteAllVideos: () => api.delete<DeleteAllVideosResponse>("/videos"),
 };

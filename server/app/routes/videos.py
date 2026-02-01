@@ -5,12 +5,14 @@ import uuid
 
 from app.database import db
 from app.dependencies import get_current_user
+from app.schemas.video import DeleteAllResponse
 from app.tasks.video_tasks import process_video
 from prisma.models import User
 
 router = APIRouter(prefix="/videos", tags=["Video Management"])
 
 UPLOAD_DIR = Path("/video_queue")
+PROCESSED_DIR = Path("/video_queue/processed")
 UPLOAD_DIR.mkdir(exist_ok=True)
 
 
@@ -74,5 +76,45 @@ async def upload(
 async def get_videos(
     current_user: User = Depends(get_current_user),
 ):
-    videos = await db.video.find_many(where={"userId": current_user.id})
+    """Get all uploaded videos for the current user, newest first."""
+    videos = await db.video.find_many(
+        where={"userId": current_user.id},
+        include={"formats": True},
+        order={"createdAt": "desc"},
+    )
     return videos
+
+
+@router.delete("", response_model=DeleteAllResponse)
+async def delete_all_videos(
+    current_user: User = Depends(get_current_user),
+):
+    """Delete all videos for the current user (DB records and files)."""
+    videos = await db.video.find_many(
+        where={"userId": current_user.id},
+        include={"formats": True},
+    )
+    count = 0
+    for video in videos:
+        if video.rawVideoUrl:
+            raw_path = Path(video.rawVideoUrl)
+            if raw_path.exists() and raw_path.is_file():
+                try:
+                    raw_path.unlink()
+                except OSError:
+                    pass
+
+        processed_path = PROCESSED_DIR / video.id
+        if processed_path.exists() and processed_path.is_dir():
+            try:
+                shutil.rmtree(processed_path)
+            except OSError:
+                pass
+        count += 1
+
+    await db.video.delete_many(where={"userId": current_user.id})
+
+    return DeleteAllResponse(
+        deleted=count,
+        message=f"Deleted {count} video(s).",
+    )
