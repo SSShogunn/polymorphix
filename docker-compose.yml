@@ -10,7 +10,7 @@ services:
       - client/.env
     volumes:
       - ./client:/client
-      - /client/node_modules
+      - polymorphix_frontend_node_modules:/client/node_modules
       - ./client/.env:/client/.env
     command: npm run dev
     networks:
@@ -101,6 +101,10 @@ volumes:
 
   polymorphix_rabbitmq_data:
     name: polymorphix_rabbitmq_data
+    driver: local
+
+  polymorphix_frontend_node_modules:
+    name: polymorphix_frontend_node_modules
     driver: local
 
 networks:
