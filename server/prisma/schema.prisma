@@ -87,27 +87,18 @@ model Video {
 // VIDEO FORMAT - Different quality versions (1080p, 720p, etc.)
 // ============================================================================
 model VideoFormat {
-  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  videoId    String   @map("video_id") @db.Uuid
+  video      Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
 
-  // Parent video
-  videoId String @map("video_id") @db.Uuid
-  video   Video  @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  resolution String   @db.VarChar(10)   // "1080p", "720p", "480p"
+  bitrate    Int                          // kbps
+  codec      String   @default("h264") @db.VarChar(20)
 
-  // Format specs
-  resolution String @db.VarChar(10) // "1080p", "720p", "480p"
-  bitrate    Int // kbps
-  codec      String @default("h264") @db.VarChar(20)
+  videoUrl   String?  @map("video_url") @db.Text   // single MP4 URL (set after cloud upload)
+  fileSize   BigInt?  @map("file_size")
 
-  // Storage URLs (for HLS/DASH streaming)
-  manifestUrl    String? @map("manifest_url") @db.Text
-  segmentBaseUrl String? @map("segment_base_url") @db.Text
-
-  // Metadata
-  fileSize        BigInt? @map("file_size")
-  segmentDuration Int     @default(6) @map("segment_duration")
-  segmentCount    Int?    @map("segment_count")
-
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   @@map("video_formats")
 }
