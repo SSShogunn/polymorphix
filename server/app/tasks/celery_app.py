@@ -1,6 +1,5 @@
-from celery import Celery
-
 from app.config import settings
+from celery import Celery
 
 celery_app = Celery("polymorphix", broker=settings.CELERY_BROKER_URL)
 
@@ -15,4 +14,4 @@ celery_app.conf.update(
     # result_backend=settings.REDIS_URL,
 )
 
-from app.tasks import video_tasks  # noqa: E402, F401
+from app.tasks import upload_tasks, video_tasks  # noqa: E402, F401
