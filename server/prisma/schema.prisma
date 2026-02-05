@@ -76,7 +76,8 @@ model Video {
   processedAt DateTime? @map("processed_at") @db.Timestamptz
 
   // Relations
-  formats VideoFormat[]
+  formats   VideoFormat[]
+  thumbnail Thumbnail?
 
   @@index([userId], name: "idx_videos_user_id")
   @@index([status], name: "idx_videos_status")
@@ -87,18 +88,35 @@ model Video {
 // VIDEO FORMAT - Different quality versions (1080p, 720p, etc.)
 // ============================================================================
 model VideoFormat {
-  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  videoId    String   @map("video_id") @db.Uuid
-  video      Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  id      String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  videoId String @map("video_id") @db.Uuid
+  video   Video  @relation(fields: [videoId], references: [id], onDelete: Cascade)
 
-  resolution String   @db.VarChar(10)   // "1080p", "720p", "480p"
-  bitrate    Int                          // kbps
-  codec      String   @default("h264") @db.VarChar(20)
+  resolution String @db.VarChar(10) // "1080p", "720p", "480p"
+  bitrate    Int // kbps
+  codec      String @default("h264") @db.VarChar(20)
 
-  videoUrl   String?  @map("video_url") @db.Text   // single MP4 URL (set after cloud upload)
-  fileSize   BigInt?  @map("file_size")
+  videoUrl String? @map("video_url") @db.Text // single MP4 URL (set after cloud upload)
+  fileSize BigInt? @map("file_size")
 
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   @@map("video_formats")
+}
+
+// ============================================================================
+// THUMBNAIL - One thumbnail per video, uploaded to R2 after processing
+// ============================================================================
+model Thumbnail {
+  id      String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  videoId String @unique @map("video_id") @db.Uuid
+  video   Video  @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  objectKey String  @map("object_key") @db.Text // R2 key, e.g. "thumbnails/<video_id>/thumb.jpg"
+  publicUrl String  @map("public_url") @db.Text // Cloudflare public URL
+  fileSize  BigInt? @map("file_size")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@map("thumbnails")
 }

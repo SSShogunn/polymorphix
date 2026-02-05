@@ -6,6 +6,7 @@ import uuid
 from app.database import db
 from app.dependencies import get_current_user
 from app.schemas.video import DeleteAllResponse
+from app.services.r2 import generate_presigned_url
 from app.tasks.video_tasks import process_video
 from prisma.models import User
 
@@ -79,10 +80,51 @@ async def get_videos(
     """Get all uploaded videos for the current user, newest first."""
     videos = await db.video.find_many(
         where={"userId": current_user.id},
-        include={"formats": True},
+        include={"formats": True, "thumbnail": True},
         order={"createdAt": "desc"},
     )
-    return videos
+    response: list[dict] = []
+    for video in videos:
+        formats_with_urls = []
+        for fmt in video.formats:
+            key = fmt.videoUrl  # this is the R2 object key we stored from the worker
+            stream_url = generate_presigned_url(key) if key else None
+            formats_with_urls.append(
+                {
+                    "id": fmt.id,
+                    "resolution": fmt.resolution,
+                    "bitrate": fmt.bitrate,
+                    "codec": fmt.codec,
+                    "fileSize": fmt.fileSize,
+                    "key": key,
+                    "streamUrl": stream_url,
+                }
+            )
+
+        response.append(
+            {
+                "id": video.id,
+                "title": video.title,
+                "description": video.description,
+                "status": video.status,
+                "rawVideoUrl": video.rawVideoUrl,
+                "fileSize": video.fileSize,
+                "createdAt": video.createdAt.isoformat()
+                if getattr(video, "createdAt", None)
+                else None,
+                "formats": formats_with_urls,
+                "thumbnail": {
+                    "id": video.thumbnail.id,
+                    "objectKey": video.thumbnail.objectKey,
+                    "publicUrl": video.thumbnail.publicUrl,
+                    "fileSize": video.thumbnail.fileSize,
+                }
+                if video.thumbnail
+                else None,
+            }
+        )
+
+    return response
 
 
 @router.delete("", response_model=DeleteAllResponse)

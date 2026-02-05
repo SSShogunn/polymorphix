@@ -8,7 +8,7 @@ import ffmpeg
 
 from app.config import settings
 from app.tasks.celery_app import celery_app
-
+from app.tasks.upload_tasks import upload_to_r2, upload_thumbnail_to_r2
 logger = logging.getLogger(__name__)
 
 OUTPUT_EXT = ".mp4"
@@ -44,11 +44,6 @@ async def _update_video_status(
         processed_at,
         video_id,
     )
-
-
-async def _get_video(conn: asyncpg.Connection, video_id: str):
-    return await conn.fetchrow("SELECT * FROM videos WHERE id = $1", video_id)
-
 
 async def _create_video_format(
     conn: asyncpg.Connection,
@@ -176,6 +171,7 @@ async def _run_processing(
                 video_url=None,
                 file_size=file_size,
             )
+            _ = upload_to_r2.delay(str(out_path), f"videos/{video_id}/{label}.mp4", video_id)
 
         await _update_video_status(conn, video_id, status="processing", progress=60)
 
@@ -196,13 +192,7 @@ async def _run_processing(
                 .overwrite_output()
                 .run(quiet=True)
             )
-            await conn.execute(
-                """
-                UPDATE videos SET thumbnail_url = $1, updated_at = NOW() WHERE id = $2
-                """,
-                str(thumb_path),
-                video_id,
-            )
+            upload_thumbnail_to_r2.delay(str(thumb_path), video_id)
         except ffmpeg.Error as ex:
             stderr = ex.stderr.decode("utf-8") if ex.stderr else ""
             logger.error(f"FFmpeg failed: {stderr}")
