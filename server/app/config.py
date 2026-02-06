@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     R2_BUCKET_NAME: str
     R2_PUBLIC_URL: str  # e.g., https://pub-abc123.r2.dev
 
+    ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:5173"
+
     class Config:
         env_file = ".env"
 

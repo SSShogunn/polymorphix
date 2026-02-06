@@ -120,5 +120,6 @@ export const fileManagementAPI = {
 
 export const videosAPI = {
   getVideos: () => api.get<Video[]>("/videos"),
+  deleteVideo: (id: string) => api.delete<{ message: string; id: string }>(`/videos/${id}`),
   deleteAllVideos: () => api.delete<DeleteAllVideosResponse>("/videos"),
 };

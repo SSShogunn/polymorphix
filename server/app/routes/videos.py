@@ -6,7 +6,7 @@ import uuid
 from app.database import db
 from app.dependencies import get_current_user
 from app.schemas.video import DeleteAllResponse
-from app.services.r2 import generate_presigned_url
+from app.services.r2 import generate_presigned_url, delete_objects
 from app.tasks.video_tasks import process_video
 from prisma.models import User
 
@@ -127,6 +127,54 @@ async def get_videos(
     return response
 
 
+@router.delete("/{video_id}")
+async def delete_video(
+    video_id: str,
+    current_user: User = Depends(get_current_user),
+):
+    """Delete a single video by ID (must be owned by current user)."""
+    video = await db.video.find_first(
+        where={"id": video_id, "userId": current_user.id},
+        include={"formats": True, "thumbnail": True},
+    )
+
+    if not video:
+        raise HTTPException(status_code=404, detail="Video not found")
+
+    # Collect R2 keys to delete
+    r2_keys: list[str] = []
+    for fmt in video.formats:
+        if fmt.videoUrl:
+            r2_keys.append(fmt.videoUrl)
+    if video.thumbnail and video.thumbnail.objectKey:
+        r2_keys.append(video.thumbnail.objectKey)
+
+    # Delete from R2
+    if r2_keys:
+        delete_objects(r2_keys)
+
+    # Delete local files
+    if video.rawVideoUrl:
+        raw_path = Path(video.rawVideoUrl)
+        if raw_path.exists() and raw_path.is_file():
+            try:
+                raw_path.unlink()
+            except OSError:
+                pass
+
+    processed_path = PROCESSED_DIR / video.id
+    if processed_path.exists() and processed_path.is_dir():
+        try:
+            shutil.rmtree(processed_path)
+        except OSError:
+            pass
+
+    # Delete from database (cascades to formats and thumbnail)
+    await db.video.delete(where={"id": video_id})
+
+    return {"message": "Video deleted successfully", "id": video_id}
+
+
 @router.delete("", response_model=DeleteAllResponse)
 async def delete_all_videos(
     current_user: User = Depends(get_current_user),
@@ -134,8 +182,19 @@ async def delete_all_videos(
     """Delete all videos for the current user (DB records and files)."""
     videos = await db.video.find_many(
         where={"userId": current_user.id},
-        include={"formats": True},
+        include={"formats": True, "thumbnail": True},
     )
+    r2_keys: list[str] = []
+    for video in videos:
+        for fmt in video.formats:
+            if fmt.videoUrl:
+                r2_keys.append(fmt.videoUrl)
+        if video.thumbnail and video.thumbnail.objectKey:
+            r2_keys.append(video.thumbnail.objectKey)
+
+    if r2_keys:
+        delete_objects(r2_keys)
+
     count = 0
     for video in videos:
         if video.rawVideoUrl:

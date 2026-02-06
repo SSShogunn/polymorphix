@@ -32,7 +32,8 @@ export default function Home() {
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const [deletingAll, setDeletingAll] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
 
   const fetchVideos = async () => {
@@ -66,14 +67,25 @@ export default function Home() {
     }
   };
 
+  const handleDeleteVideo = async (videoId: string) => {
+    if (!window.confirm("Delete this video? This cannot be undone.")) return;
+    setDeletingId(videoId);
+    try {
+      await videosAPI.deleteVideo(videoId);
+      setVideos((prev) => prev.filter((v) => v.id !== videoId));
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const handleDeleteAll = async () => {
     if (!window.confirm("Delete all your videos? This cannot be undone.")) return;
-    setDeleting(true);
+    setDeletingAll(true);
     try {
       await videosAPI.deleteAllVideos();
       await fetchVideos();
     } finally {
-      setDeleting(false);
+      setDeletingAll(false);
     }
   };
 
@@ -158,9 +170,9 @@ export default function Home() {
             <Button
               variant="destructive"
               onClick={handleDeleteAll}
-              disabled={deleting}
+              disabled={deletingAll}
             >
-              {deleting ? "Deleting…" : "Delete all videos"}
+              {deletingAll ? "Deleting…" : "Delete all videos"}
             </Button>
           )}
         </div>
@@ -180,6 +192,8 @@ export default function Home() {
                 key={video.id}
                 video={video}
                 onClick={() => setSelectedVideo(video)}
+                onDelete={() => handleDeleteVideo(video.id)}
+                deleting={deletingId === video.id}
               />
             ))}
           </div>

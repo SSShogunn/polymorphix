@@ -1,4 +1,4 @@
-import { PlayIcon, ClockIcon, AlertCircleIcon } from "lucide-react";
+import { PlayIcon, ClockIcon, AlertCircleIcon, Trash2Icon } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -7,12 +7,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import type { Video } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 interface VideoCardProps {
   video: Video;
   onClick?: () => void;
+  onDelete?: () => void;
+  deleting?: boolean;
 }
 
 function formatFileSize(bytes: number | null): string {
@@ -24,22 +27,39 @@ function formatFileSize(bytes: number | null): string {
   return `${mb.toFixed(1)} MB`;
 }
 
-export function VideoCard({ video, onClick }: VideoCardProps) {
+export function VideoCard({ video, onClick, onDelete, deleting }: VideoCardProps) {
   const isReady = video.status === "ready";
   const isFailed = video.status === "failed";
   const isProcessing = video.status === "processing" || video.status === "pending" || video.status === "uploading";
   const hasFormats = video.formats && video.formats.some((f) => f.streamUrl);
   const thumbnailUrl = video.thumbnail?.publicUrl;
 
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onDelete && !deleting) {
+      onDelete();
+    }
+  };
+
   return (
     <Card
       className={cn(
-        "overflow-hidden transition-shadow",
+        "overflow-hidden transition-shadow relative group",
         isReady && hasFormats && "cursor-pointer hover:shadow-lg"
       )}
       onClick={isReady && hasFormats ? onClick : undefined}
     >
-      <div className="aspect-video bg-muted flex items-center justify-center overflow-hidden relative group">
+      <Button
+        variant="destructive"
+        size="icon"
+        className="absolute top-2 right-2 z-10 size-8 opacity-0 group-hover:opacity-100 transition-opacity"
+        onClick={handleDelete}
+        disabled={deleting}
+      >
+        <Trash2Icon className="size-4" />
+      </Button>
+
+      <div className="aspect-video bg-muted flex items-center justify-center overflow-hidden relative">
         {thumbnailUrl ? (
           <>
             <img

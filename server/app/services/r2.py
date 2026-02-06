@@ -41,3 +41,32 @@ def generate_presigned_url(key: str, expires_in: int = 3600) -> str:
     except Exception as exc:
         logger.error("Failed to generate presigned URL for %s: %s", key, exc)
         raise
+
+
+def delete_object(key: str) -> bool:
+    """Delete an object from R2 bucket."""
+    try:
+        s3.delete_object(Bucket=BUCKET, Key=key)
+        logger.info("Deleted object from R2: %s", key)
+        return True
+    except Exception as exc:
+        logger.error("Failed to delete object %s: %s", key, exc)
+        return False
+
+
+def delete_objects(keys: list[str]) -> int:
+    """Delete multiple objects from R2 bucket. Returns count of deleted objects."""
+    if not keys:
+        return 0
+    try:
+        objects = [{"Key": key} for key in keys]
+        response = s3.delete_objects(
+            Bucket=BUCKET,
+            Delete={"Objects": objects, "Quiet": True},
+        )
+        deleted_count = len(keys) - len(response.get("Errors", []))
+        logger.info("Deleted %d objects from R2", deleted_count)
+        return deleted_count
+    except Exception as exc:
+        logger.error("Failed to delete objects: %s", exc)
+        return 0
