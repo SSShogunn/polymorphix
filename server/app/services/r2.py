@@ -22,7 +22,7 @@ def generate_public_url(key: str) -> str:
     Build the Cloudflare R2 public URL for a given object key.
     Requires public access to be enabled on the bucket.
     """
-    return f"https://{BUCKET}.pub.r2.dev/{key}"
+    return f"{settings.R2_PUBLIC_URL}/{key}"
 
 
 def generate_presigned_url(key: str, expires_in: int = 3600) -> str:

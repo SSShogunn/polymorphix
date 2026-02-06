@@ -3,14 +3,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -23,6 +15,8 @@ import { Label } from "@radix-ui/react-label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/spinner";
+import { VideoCard } from "@/components/VideoCard";
+import { VideoPlayerDialog } from "@/components/VideoPlayerDialog";
 import { useForm } from "react-hook-form";
 import { fileManagementAPI, videosAPI, type Video } from "@/lib/api";
 
@@ -39,6 +33,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
 
   const fetchVideos = async () => {
     try {
@@ -181,47 +176,21 @@ export default function Home() {
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {videos.map((video) => (
-              <Card key={video.id} className="overflow-hidden">
-                <div className="aspect-video bg-muted flex items-center justify-center overflow-hidden">
-                  {video.thumbnailUrl?.startsWith("http") ? (
-                    <img
-                      src={video.thumbnailUrl}
-                      alt=""
-                      className="size-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-muted-foreground text-sm">
-                      {video.status === "ready"
-                        ? "No thumbnail"
-                        : video.status === "failed"
-                          ? "Failed"
-                          : `${video.status} (${video.processingProgress}%)`}
-                    </span>
-                  )}
-                </div>
-                <CardHeader>
-                  <CardTitle className="line-clamp-1">{video.title}</CardTitle>
-                  <CardDescription className="line-clamp-2">
-                    {video.description || "No description"}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="text-sm text-muted-foreground">
-                  <span className="capitalize">{video.status}</span>
-                  {video.status === "processing" && (
-                    <span> — {video.processingProgress}%</span>
-                  )}
-                  {video.formats?.length ? (
-                    <span> · {video.formats.map((f) => f.resolution).join(", ")}</span>
-                  ) : null}
-                </CardContent>
-                <CardFooter className="text-xs text-muted-foreground">
-                  {new Date(video.createdAt).toLocaleDateString()}
-                </CardFooter>
-              </Card>
+              <VideoCard
+                key={video.id}
+                video={video}
+                onClick={() => setSelectedVideo(video)}
+              />
             ))}
           </div>
         )}
       </main>
+
+      <VideoPlayerDialog
+        video={selectedVideo}
+        open={!!selectedVideo}
+        onOpenChange={(open) => !open && setSelectedVideo(null)}
+      />
     </div>
   );
 }
