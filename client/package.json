@@ -24,6 +24,7 @@
     "react-dom": "^19.2.0",
     "react-hook-form": "^7.69.0",
     "react-router-dom": "^7.11.0",
+    "react-toastify": "^11.0.5",
     "tailwind-merge": "^3.4.0",
     "tailwindcss": "^4.1.18",
     "video.js": "^8.23.6"
