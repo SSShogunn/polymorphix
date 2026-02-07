@@ -11,8 +11,6 @@ celery_app.conf.update(
     enable_utc=True,
     task_track_started=True,
     task_routes={"upload.*": {"queue": "upload"}},
-    # Result backend (optional - for task result storage)
-    # result_backend=settings.REDIS_URL,
 )
 
-from app.tasks import upload_tasks, video_tasks  # noqa: E402, F401
+from app.tasks import upload_tasks, video_tasks

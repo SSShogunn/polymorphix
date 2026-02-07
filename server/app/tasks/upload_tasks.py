@@ -21,33 +21,6 @@ s3 = boto3.client(
 
 BUCKET = settings.R2_BUCKET_NAME
 
-
-# async def _update_video_status(
-#     conn: asyncpg.Connection,
-#     video_id: str,
-#     status: str,
-#     progress: int = 0,
-#     error_message: str | None = None,
-#     processed_at: datetime | None = None,
-# ):
-#     await conn.execute(
-#         """
-#         UPDATE videos
-#         SET status = $1,
-#             processing_progress = $2,
-#             error_message = $3,
-#             processed_at = $4,
-#             updated_at = NOW()
-#         WHERE id = $5
-#         """,
-#         status,
-#         progress,
-#         error_message,
-#         processed_at,
-#         video_id,
-#     )
-
-
 async def _upload_video_format(
     video_id: str,
     resolution: str,
@@ -101,12 +74,10 @@ def upload_to_r2(self, file_path: str, object_key: str, video_id: str):
             ExtraArgs={"ContentType": "video/mp4"},
         )
 
-        # Derive resolution label from the object key, e.g. "videos/<video_id>/1080.mp4" -> "1080p"
         filename = object_key.rsplit("/", 1)[-1]
         label = filename.split(".")[0]
         resolution = f"{label}p"
 
-        # Persist the key and size back to the DB for this format.
         asyncio.run(_upload_video_format(video_id, resolution, object_key, file_size))
 
         logger.info(

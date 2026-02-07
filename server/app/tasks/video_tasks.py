@@ -99,7 +99,7 @@ async def _run_processing(
             return
         await _update_video_status(conn, video_id, status="processing", progress=10)
 
-        # Step 2: Extract video metadata (duration, resolution, etc.)
+        # Step 2: Extract video metadata
         metadata = ffmpeg.probe(
             file_path,
             v="quiet",
@@ -125,7 +125,7 @@ async def _run_processing(
 
         await _update_video_status(conn, video_id, status="processing", progress=20)
 
-        # Step 3: Transcode to multiple qualities (1080p, 720p, 480p)
+            # Step 3: Transcode to multiple qualities
         base_dir = Path("/video_queue/processed") / video_id
         base_dir.mkdir(parents=True, exist_ok=True)
 
