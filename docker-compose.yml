@@ -1,21 +1,4 @@
 services:
-  frontend:
-    container_name: polymorphix-frontend
-    build:
-      context: ./client
-      dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
-    env_file:
-      - client/.env
-    volumes:
-      - ./client:/client
-      - polymorphix_frontend_node_modules:/client/node_modules
-      - ./client/.env:/client/.env
-    command: npm run dev
-    networks:
-      - polymorphix-network
-
   backend:
     container_name: polymorphix-backend
     build:
@@ -123,10 +106,6 @@ volumes:
 
   polymorphix_rabbitmq_data:
     name: polymorphix_rabbitmq_data
-    driver: local
-
-  polymorphix_frontend_node_modules:
-    name: polymorphix_frontend_node_modules
     driver: local
 
 networks:
