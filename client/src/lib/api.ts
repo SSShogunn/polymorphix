@@ -111,10 +111,18 @@ export interface DeleteAllVideosResponse {
   message: string;
 }
 
+export type UploadProgressHandler = (loaded: number, total: number | undefined) => void;
+
 export const fileManagementAPI = {
-  uploadFile: (data: FormData) =>
+  uploadFile: (
+    data: FormData,
+    options?: { onUploadProgress?: UploadProgressHandler }
+  ) =>
     api.post("/videos/upload", data, {
       headers: { "Content-Type": "multipart/form-data" },
+      onUploadProgress:
+        options?.onUploadProgress &&
+        ((e) => options!.onUploadProgress!(e.loaded, e.total)),
     }),
 };
 

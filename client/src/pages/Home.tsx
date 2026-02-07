@@ -18,6 +18,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { VideoCard } from "@/components/VideoCard";
 import { VideoPlayerDialog } from "@/components/VideoPlayerDialog";
 import { useForm } from "react-hook-form";
+import { toast } from "react-toastify";
 import { fileManagementAPI, videosAPI, type Video } from "@/lib/api";
 
 type UploadFormData = {
@@ -26,12 +27,17 @@ type UploadFormData = {
   file: FileList;
 };
 
+const MAX_SIZE_MB = 2048;
+const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024; 
+
 export default function Home() {
   const { signOut } = useAuth();
   const { register, handleSubmit, reset } = useForm<UploadFormData>();
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [deletingAll, setDeletingAll] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
@@ -52,18 +58,39 @@ export default function Home() {
   }, []);
 
   const onSubmit = async (data: UploadFormData) => {
+    const file = data.file[0];
+    if (!file) return;
+    if (file.size > MAX_SIZE_BYTES) {
+      toast.error(`File too large. Max ${MAX_SIZE_MB}MB allowed`);
+      return;
+    }
+
     setUploading(true);
+    setUploadProgress(0);
     try {
       const formData = new FormData();
       formData.append("title", data.title);
       formData.append("description", data.description);
-      formData.append("file", data.file[0]);
+      formData.append("file", file);
 
-      await fileManagementAPI.uploadFile(formData);
+      const fileSize = file.size;
+      await fileManagementAPI.uploadFile(formData, {
+        onUploadProgress: (loaded, total) => {
+          const totalBytes = total != null && total > 0 ? total : fileSize;
+          if (totalBytes > 0) {
+            setUploadProgress(Math.min(100, Math.round((loaded / totalBytes) * 100)));
+          }
+        },
+      });
+      toast.success("Video uploaded successfully");
+      setUploadDialogOpen(false);
       reset();
       await fetchVideos();
+    } catch {
+      toast.error("Upload failed. Please try again.");
     } finally {
       setUploading(false);
+      setUploadProgress(null);
     }
   };
 
@@ -109,7 +136,13 @@ export default function Home() {
 
       <main className="container mx-auto p-8 space-y-8">
         <div className="flex flex-wrap items-center gap-2">
-          <Dialog>
+          <Dialog
+            open={uploadDialogOpen}
+            onOpenChange={(open) => {
+              setUploadDialogOpen(open);
+              if (!open) setUploadProgress(null);
+            }}
+          >
             <DialogTrigger asChild>
               <Button variant="outline" disabled={uploading}>
                 {uploading ? "Uploading…" : "Upload Video"}
@@ -156,6 +189,21 @@ export default function Home() {
                     Select a video file to upload
                   </p>
                 </div>
+
+                {uploading && (
+                  <div className="space-y-2 py-1">
+                    <div className="flex justify-between text-sm text-muted-foreground">
+                      <span>Uploading…</span>
+                      <span>{uploadProgress != null ? `${uploadProgress}%` : "0%"}</span>
+                    </div>
+                    <div className="h-2.5 w-full rounded-full bg-muted overflow-hidden border border-border">
+                      <div
+                        className="h-full bg-primary transition-[width] duration-200 ease-out min-w-[2%]"
+                        style={{ width: `${uploadProgress ?? 0}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
 
                 <DialogFooter>
                   <Button type="submit" disabled={uploading}>

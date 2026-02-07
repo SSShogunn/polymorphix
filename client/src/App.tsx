@@ -1,4 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
@@ -24,6 +26,7 @@ function App() {
           </Routes>
         </BrowserRouter>
       </AuthProvider>
+      <ToastContainer position="bottom-right" theme="colored" />
     </ThemeProvider>
   );
 }
