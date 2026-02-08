@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,16 @@ import { EditVideoDialog, type EditFormData } from "@/components/EditVideoDialog
 import { useForm } from "react-hook-form";
 import { toast } from "react-toastify";
 import { fileManagementAPI, videosAPI, type Video } from "@/lib/api";
-import { Upload, Trash2, Video as VideoIcon } from "lucide-react";
+import { Upload, Trash2, Video as VideoIcon, Search } from "lucide-react";
+
+const DEBOUNCE_MS = 300;
+const STATUS_FILTERS = [
+  { value: "all", label: "All" },
+  { value: "ready", label: "Ready" },
+  { value: "processing", label: "Processing" },
+  { value: "failed", label: "Failed" },
+] as const;
+type StatusFilterValue = (typeof STATUS_FILTERS)[number]["value"];
 
 type UploadFormData = {
   title: string;
@@ -46,10 +55,27 @@ export default function Home() {
   const [editingVideo, setEditingVideo] = useState<Video | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [updating, setUpdating] = useState(false);
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilterValue>("all");
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const fetchVideos = async () => {
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setDebouncedSearch(searchInput);
+    }, DEBOUNCE_MS);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [searchInput]);
+
+  const fetchVideos = async (params?: { q?: string; status?: string }) => {
     try {
-      const res = await videosAPI.getVideos();
+      const res = await videosAPI.getVideos({
+        q: params?.q ?? (debouncedSearch || undefined),
+        status: params?.status ?? (statusFilter === "all" ? undefined : statusFilter),
+      });
       setVideos(res.data);
     } catch {
       setVideos([]);
@@ -59,8 +85,9 @@ export default function Home() {
   };
 
   useEffect(() => {
+    setLoading(true);
     fetchVideos();
-  }, []);
+  }, [debouncedSearch, statusFilter]);
 
   const onSubmit = async (data: UploadFormData) => {
     const file = data.file[0];
@@ -287,6 +314,32 @@ export default function Home() {
                 {deletingAll ? "Deleting…" : "Delete All"}
               </Button>
             )}
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Search title or description..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="pl-9"
+              aria-label="Search videos"
+            />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {STATUS_FILTERS.map(({ value, label }) => (
+              <Button
+                key={value}
+                variant={statusFilter === value ? "default" : "outline"}
+                size="sm"
+                onClick={() => setStatusFilter(value)}
+              >
+                {label}
+              </Button>
+            ))}
           </div>
         </div>
 

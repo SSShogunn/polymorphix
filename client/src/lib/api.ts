@@ -138,8 +138,23 @@ export interface UpdateVideoResponse {
   description: string | null;
 }
 
+export interface GetVideosParams {
+  q?: string | null;
+  status?: string | null;
+  sort?: string;
+  order?: "asc" | "desc";
+}
+
 export const videosAPI = {
-  getVideos: () => api.get<Video[]>("/videos"),
+  getVideos: (params?: GetVideosParams) =>
+    api.get<Video[]>("/videos", {
+      params: {
+        ...(params?.q != null && params.q !== "" && { q: params.q }),
+        ...(params?.status != null && params.status !== "" && { status: params.status }),
+        ...(params?.sort != null && { sort: params.sort }),
+        ...(params?.order != null && { order: params.order }),
+      },
+    }),
   updateVideo: (id: string, data: UpdateVideoData) => api.patch<UpdateVideoResponse>(`/videos/${id}`, data),
   deleteVideo: (id: string) => api.delete<{ message: string; id: string }>(`/videos/${id}`),
   deleteAllVideos: () => api.delete<DeleteAllVideosResponse>("/videos"),

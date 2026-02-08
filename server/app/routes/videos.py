@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, Depends, File, HTTPException
+from fastapi import APIRouter, UploadFile, Depends, File, HTTPException, Query
 from pathlib import Path
 import shutil
 import uuid
@@ -72,15 +72,37 @@ async def upload(
     }
 
 
+ALLOWED_SORT_FIELDS = {"createdAt", "title", "fileSize"}
+ALLOWED_ORDERS = {"asc", "desc"}
+
+
 @router.get("")
 async def get_videos(
     current_user: User = Depends(get_current_user),
+    q: str | None = Query(None),
+    status: str | None = Query(None),
+    sort: str = Query("createdAt"),
+    order: str = Query("desc"),
 ):
-    """Get all uploaded videos for the current user, newest first."""
+    """Get all uploaded videos for the current user with optional search, filter and sort."""
+    where: dict = {"userId": current_user.id}
+
+    if q:
+        where["OR"] = [
+            {"title": {"contains": q, "mode": "insensitive"}},
+            {"description": {"contains": q, "mode": "insensitive"}},
+        ]
+    if status:
+        where["status"] = status
+
+    sort_field = sort if sort in ALLOWED_SORT_FIELDS else "createdAt"
+    order_dir = order if order in ALLOWED_ORDERS else "desc"
+    order_by = {sort_field: order_dir}
+
     videos = await db.video.find_many(
-        where={"userId": current_user.id},
+        where=where,
         include={"formats": True, "thumbnail": True},
-        order={"createdAt": "desc"},
+        order=order_by,
     )
     response: list[dict] = []
     for video in videos:
@@ -133,30 +155,25 @@ async def update_video(
     current_user: User = Depends(get_current_user),
 ):
     """Update video title and description (only provided fields)"""
-    video = await db.video.find_first(
-        where={"id": video_id, "userId": current_user.id}
-    )
-    
+    video = await db.video.find_first(where={"id": video_id, "userId": current_user.id})
+
     if not video:
         raise HTTPException(status_code=404, detail="Video not found")
 
     update_data = params.model_dump(exclude_unset=True)
 
     print(update_data)
-    
+
     if not update_data:
         raise HTTPException(status_code=400, detail="No fields to update")
-    
-    updated_video = await db.video.update(
-        where={"id": video_id},
-        data=update_data
-    )
+
+    updated_video = await db.video.update(where={"id": video_id}, data=update_data)
 
     return {
         "message": "Video updated successfully",
         "id": updated_video.id,
         "title": updated_video.title,
-        "description": updated_video.description
+        "description": updated_video.description,
     }
 
 
