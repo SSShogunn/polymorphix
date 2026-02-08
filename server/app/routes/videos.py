@@ -1,11 +1,11 @@
-from fastapi import APIRouter, UploadFile, Depends, Form, File, HTTPException
+from fastapi import APIRouter, UploadFile, Depends, File, HTTPException
 from pathlib import Path
 import shutil
 import uuid
 
 from app.database import db
 from app.dependencies import get_current_user
-from app.schemas.video import DeleteAllResponse
+from app.schemas.video import DeleteAllResponse, VideoUploadParams, VideoUpdate
 from app.services.r2 import generate_presigned_url, delete_objects
 from app.tasks.video_tasks import process_video
 from prisma.models import User
@@ -19,10 +19,9 @@ UPLOAD_DIR.mkdir(exist_ok=True)
 
 @router.post("/upload")
 async def upload(
+    params: VideoUploadParams = Depends(),
     current_user: User = Depends(get_current_user),
     file: UploadFile = File(...),
-    title: str = Form(...),
-    description: str = Form(...),
 ):
     if not file.filename:
         raise HTTPException(status_code=400, detail="Filename missing")
@@ -44,8 +43,8 @@ async def upload(
     video = await db.video.create(
         data={
             "userId": current_user.id,
-            "title": title,
-            "description": description,
+            "title": params.title,
+            "description": params.description,
             "originalFilename": file.filename,
             "fileSize": file_size,
             "status": "uploading",
@@ -62,8 +61,8 @@ async def upload(
 
     return {
         "id": video.id,
-        "title": video.title,
-        "description": video.description,
+        "title": params.title,
+        "description": params.description,
         "original_name": file.filename,
         "stored_as": file_name,
         "content_type": file.content_type,
@@ -87,7 +86,7 @@ async def get_videos(
     for video in videos:
         formats_with_urls = []
         for fmt in video.formats:
-            key = fmt.videoUrl  # this is the R2 object key we stored from the worker
+            key = fmt.videoUrl
             stream_url = generate_presigned_url(key) if key else None
             formats_with_urls.append(
                 {
@@ -125,6 +124,40 @@ async def get_videos(
         )
 
     return response
+
+
+@router.patch("/{video_id}")
+async def update_video(
+    video_id: str,
+    params: VideoUpdate,
+    current_user: User = Depends(get_current_user),
+):
+    """Update video title and description (only provided fields)"""
+    video = await db.video.find_first(
+        where={"id": video_id, "userId": current_user.id}
+    )
+    
+    if not video:
+        raise HTTPException(status_code=404, detail="Video not found")
+
+    update_data = params.model_dump(exclude_unset=True)
+
+    print(update_data)
+    
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    
+    updated_video = await db.video.update(
+        where={"id": video_id},
+        data=update_data
+    )
+
+    return {
+        "message": "Video updated successfully",
+        "id": updated_video.id,
+        "title": updated_video.title,
+        "description": updated_video.description
+    }
 
 
 @router.delete("/{video_id}")

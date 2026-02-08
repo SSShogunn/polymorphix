@@ -1,4 +1,4 @@
-import { PlayIcon, ClockIcon, AlertCircleIcon, Trash2Icon } from "lucide-react";
+import { PlayIcon, ClockIcon, AlertCircleIcon, Trash2Icon, PencilIcon } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -15,6 +15,7 @@ interface VideoCardProps {
   video: Video;
   onClick?: () => void;
   onDelete?: () => void;
+  onEdit?: () => void;
   deleting?: boolean;
 }
 
@@ -27,7 +28,7 @@ function formatFileSize(bytes: number | null): string {
   return `${mb.toFixed(1)} MB`;
 }
 
-export function VideoCard({ video, onClick, onDelete, deleting }: VideoCardProps) {
+export function VideoCard({ video, onClick, onDelete, onEdit, deleting }: VideoCardProps) {
   const isReady = video.status === "ready";
   const isFailed = video.status === "failed";
   const isProcessing = video.status === "processing" || video.status === "pending" || video.status === "uploading";
@@ -41,6 +42,13 @@ export function VideoCard({ video, onClick, onDelete, deleting }: VideoCardProps
     }
   };
 
+  const handleEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onEdit) {
+      onEdit();
+    }
+  };
+
   return (
     <Card
       className={cn(
@@ -49,15 +57,27 @@ export function VideoCard({ video, onClick, onDelete, deleting }: VideoCardProps
       )}
       onClick={isReady && hasFormats ? onClick : undefined}
     >
-      <Button
-        variant="destructive"
-        size="icon"
-        className="absolute top-3 right-3 z-20 size-9 opacity-0 group-hover:opacity-100 transition-all shadow-lg"
-        onClick={handleDelete}
-        disabled={deleting}
-      >
-        <Trash2Icon className="size-4" />
-      </Button>
+      <div className="absolute top-3 right-3 z-20 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
+        {onEdit && (
+          <Button
+            variant="secondary"
+            size="icon"
+            className="size-9 shadow-lg"
+            onClick={handleEdit}
+          >
+            <PencilIcon className="size-4" />
+          </Button>
+        )}
+        <Button
+          variant="destructive"
+          size="icon"
+          className="size-9 shadow-lg"
+          onClick={handleDelete}
+          disabled={deleting}
+        >
+          <Trash2Icon className="size-4" />
+        </Button>
+      </div>
 
       <div className="aspect-video bg-muted flex items-center justify-center overflow-hidden relative">
         {thumbnailUrl ? (
@@ -96,7 +116,7 @@ export function VideoCard({ video, onClick, onDelete, deleting }: VideoCardProps
           </div>
         )}
       </div>
-        
+
       <CardHeader className="pb-3 pt-4">
         <CardTitle className="line-clamp-2 text-base leading-snug font-semibold">
           {video.title}

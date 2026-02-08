@@ -126,8 +126,21 @@ export const fileManagementAPI = {
     }),
 };
 
+export interface UpdateVideoData {
+  title?: string;
+  description?: string;
+}
+
+export interface UpdateVideoResponse {
+  message: string;
+  id: string;
+  title: string;
+  description: string | null;
+}
+
 export const videosAPI = {
   getVideos: () => api.get<Video[]>("/videos"),
+  updateVideo: (id: string, data: UpdateVideoData) => api.patch<UpdateVideoResponse>(`/videos/${id}`, data),
   deleteVideo: (id: string) => api.delete<{ message: string; id: string }>(`/videos/${id}`),
   deleteAllVideos: () => api.delete<DeleteAllVideosResponse>("/videos"),
 };

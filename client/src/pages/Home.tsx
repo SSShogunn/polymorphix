@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/spinner";
 import { VideoCard } from "@/components/VideoCard";
+import { EditVideoDialog, type EditFormData } from "@/components/EditVideoDialog";
 import { useForm } from "react-hook-form";
 import { toast } from "react-toastify";
 import { fileManagementAPI, videosAPI, type Video } from "@/lib/api";
@@ -42,6 +43,9 @@ export default function Home() {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [deletingAll, setDeletingAll] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [editingVideo, setEditingVideo] = useState<Video | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [updating, setUpdating] = useState(false);
 
   const fetchVideos = async () => {
     try {
@@ -123,6 +127,32 @@ export default function Home() {
 
   const handleVideoClick = (video: Video) => {
     navigate(`/watch?v=${video.id}`);
+  };
+
+  const handleEditVideo = (video: Video) => {
+    setEditingVideo(video);
+    setEditDialogOpen(true);
+  };
+
+  const handleUpdateVideo = async (data: EditFormData) => {
+    if (!editingVideo) return;
+    
+    setUpdating(true);
+    try {
+      await videosAPI.updateVideo(editingVideo.id, {
+        title: data.title,
+        description: data.description,
+      });
+      toast.success("Video updated successfully");
+      setEditDialogOpen(false);
+      setEditingVideo(null);
+      await fetchVideos();
+    } catch (error) {
+      toast.error("Failed to update video");
+      console.error(error);
+    } finally {
+      setUpdating(false);
+    }
   };
 
   return (
@@ -292,6 +322,7 @@ export default function Home() {
                 key={video.id}
                 video={video}
                 onClick={() => handleVideoClick(video)}
+                onEdit={() => handleEditVideo(video)}
                 onDelete={() => handleDeleteVideo(video.id)}
                 deleting={deletingId === video.id}
               />
@@ -299,6 +330,19 @@ export default function Home() {
           </div>
         )}
       </main>
+
+      {editingVideo && (
+        <EditVideoDialog
+          video={editingVideo}
+          open={editDialogOpen}
+          onOpenChange={(open) => {
+            setEditDialogOpen(open);
+            if (!open) setEditingVideo(null);
+          }}
+          onSubmit={handleUpdateVideo}
+          isSubmitting={updating}
+        />
+      )}
     </div>
   );
 }
