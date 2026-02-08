@@ -6,6 +6,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import Auth from '@/pages/Auth';
 import Home from '@/pages/Home';
+import Watch from '@/pages/Watch';
 
 function App() {
   return (
@@ -19,6 +20,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Home />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/watch"
+              element={
+                <ProtectedRoute>
+                  <Watch />
                 </ProtectedRoute>
               }
             />

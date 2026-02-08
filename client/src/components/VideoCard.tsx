@@ -44,15 +44,15 @@ export function VideoCard({ video, onClick, onDelete, deleting }: VideoCardProps
   return (
     <Card
       className={cn(
-        "overflow-hidden transition-shadow relative group",
-        isReady && hasFormats && "cursor-pointer hover:shadow-lg"
+        "overflow-hidden transition-all duration-300 relative group border-border/40",
+        isReady && hasFormats && "cursor-pointer hover:shadow-xl hover:scale-[1.02] hover:border-border"
       )}
       onClick={isReady && hasFormats ? onClick : undefined}
     >
       <Button
         variant="destructive"
         size="icon"
-        className="absolute top-2 right-2 z-10 size-8 opacity-0 group-hover:opacity-100 transition-opacity"
+        className="absolute top-3 right-3 z-20 size-9 opacity-0 group-hover:opacity-100 transition-all shadow-lg"
         onClick={handleDelete}
         disabled={deleting}
       >
@@ -65,47 +65,53 @@ export function VideoCard({ video, onClick, onDelete, deleting }: VideoCardProps
             <img
               src={thumbnailUrl}
               alt={video.title}
-              className="size-full object-cover"
+              className="size-full object-cover transition-transform duration-500 group-hover:scale-110"
             />
             {isReady && hasFormats && (
-              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <div className="size-16 rounded-full bg-white/90 flex items-center justify-center">
-                  <PlayIcon className="size-8 text-black ml-1" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
+                <div className="size-16 rounded-full bg-primary text-primary-foreground shadow-2xl flex items-center justify-center transform scale-75 group-hover:scale-100 transition-transform duration-300">
+                  <PlayIcon className="size-7 ml-1 fill-current" />
                 </div>
               </div>
             )}
           </>
         ) : (
-          <div className="flex flex-col items-center gap-2 text-muted-foreground">
+          <div className="flex flex-col items-center gap-3 text-muted-foreground p-4">
             {isFailed ? (
               <>
-                <AlertCircleIcon className="size-8 text-destructive" />
-                <span className="text-sm">Processing failed</span>
+                <AlertCircleIcon className="size-10 text-destructive" />
+                <span className="text-sm font-medium">Processing failed</span>
               </>
             ) : isProcessing ? (
               <>
-                <ClockIcon className="size-8 animate-pulse" />
-                <span className="text-sm capitalize">{video.status}...</span>
+                <ClockIcon className="size-10 animate-pulse" />
+                <span className="text-sm font-medium capitalize">{video.status}...</span>
               </>
             ) : (
-              <span className="text-sm">No thumbnail</span>
+              <>
+                <PlayIcon className="size-10 opacity-40" />
+                <span className="text-sm">No thumbnail</span>
+              </>
             )}
           </div>
         )}
       </div>
-
-      <CardHeader className="pb-2">
-        <CardTitle className="line-clamp-1 text-base">{video.title}</CardTitle>
-        <CardDescription className="line-clamp-2 text-sm">
-          {video.description || "No description"}
-        </CardDescription>
+        
+      <CardHeader className="pb-3 pt-4">
+        <CardTitle className="line-clamp-2 text-base leading-snug font-semibold">
+          {video.title}
+        </CardTitle>
       </CardHeader>
 
-      <CardContent className="text-sm text-muted-foreground pb-2">
-        <div className="flex items-center gap-2 flex-wrap">
+      <CardContent className="pb-3 pt-0 space-y-2">
+        <CardDescription className="line-clamp-2 text-sm leading-relaxed">
+          {video.description || "No description"}
+        </CardDescription>
+        
+        <div className="flex items-center gap-2 flex-wrap pt-1">
           <span
             className={cn(
-              "capitalize px-2 py-0.5 rounded-full text-xs font-medium",
+              "capitalize px-2.5 py-1 rounded-full text-xs font-medium",
               isReady && "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
               isFailed && "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
               isProcessing && "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
@@ -114,17 +120,17 @@ export function VideoCard({ video, onClick, onDelete, deleting }: VideoCardProps
             {video.status}
           </span>
           {video.formats?.length ? (
-            <span className="text-xs">
+            <span className="text-xs text-muted-foreground font-medium">
               {video.formats.map((f) => f.resolution).join(" · ")}
             </span>
           ) : null}
           {video.fileSize && (
-            <span className="text-xs">{formatFileSize(video.fileSize)}</span>
+            <span className="text-xs text-muted-foreground">{formatFileSize(video.fileSize)}</span>
           )}
         </div>
       </CardContent>
 
-      <CardFooter className="text-xs text-muted-foreground pt-0">
+      <CardFooter className="text-xs text-muted-foreground pt-0 pb-4">
         {new Date(video.createdAt).toLocaleDateString(undefined, {
           year: "numeric",
           month: "short",

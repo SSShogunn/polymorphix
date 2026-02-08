@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -16,10 +17,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/spinner";
 import { VideoCard } from "@/components/VideoCard";
-import { VideoPlayerDialog } from "@/components/VideoPlayerDialog";
 import { useForm } from "react-hook-form";
 import { toast } from "react-toastify";
 import { fileManagementAPI, videosAPI, type Video } from "@/lib/api";
+import { Upload, Trash2, Video as VideoIcon } from "lucide-react";
 
 type UploadFormData = {
   title: string;
@@ -32,6 +33,7 @@ const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
 
 export default function Home() {
   const { signOut } = useAuth();
+  const navigate = useNavigate();
   const { register, handleSubmit, reset } = useForm<UploadFormData>();
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,7 +42,6 @@ export default function Home() {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [deletingAll, setDeletingAll] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
 
   const fetchVideos = async () => {
     try {
@@ -120,12 +121,21 @@ export default function Home() {
     await signOut();
   };
 
+  const handleVideoClick = (video: Video) => {
+    navigate(`/watch?v=${video.id}`);
+  };
+
   return (
     <div className="min-h-svh bg-background">
-      <header className="border-b">
-        <div className="container mx-auto flex items-center justify-between p-4">
-          <h1 className="text-2xl font-bold">Polymorphix</h1>
-          <div className="flex items-center gap-2">
+      <header className="border-b sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
+        <div className="container mx-auto flex items-center justify-between px-6 py-4">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center size-10 rounded-lg bg-primary text-primary-foreground">
+              <VideoIcon className="size-6" />
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight">Polymorphix</h1>
+          </div>
+          <div className="flex items-center gap-3">
             <ThemeToggle />
             <Button variant="outline" onClick={handleSignOut}>
               Sign Out
@@ -134,112 +144,154 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="container mx-auto p-8 space-y-8">
-        <div className="flex flex-wrap items-center gap-2">
-          <Dialog
-            open={uploadDialogOpen}
-            onOpenChange={(open) => {
-              setUploadDialogOpen(open);
-              if (!open) setUploadProgress(null);
-            }}
-          >
-            <DialogTrigger asChild>
-              <Button variant="outline" disabled={uploading}>
-                {uploading ? "Uploading…" : "Upload Video"}
-              </Button>
-            </DialogTrigger>
+      <main className="container mx-auto px-6 py-8 space-y-8">  
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight">Your Videos</h2>
+            <p className="text-muted-foreground mt-1">
+              {videos.length === 0
+                ? "Upload your first video to get started"
+                : `${videos.length} video${videos.length === 1 ? "" : "s"} in your library`}
+            </p>
+          </div>
 
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Upload Video</DialogTitle>
-                <DialogDescription>
-                  Upload a video to your account
-                </DialogDescription>
-              </DialogHeader>
-
-              <form className="space-y-6 mt-4" onSubmit={handleSubmit(onSubmit)}>
-                <div className="space-y-2">
-                  <Label htmlFor="title">Title</Label>
-                  <Input
-                    id="title"
-                    placeholder="Enter video title"
-                    {...register("title", { required: true })}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    rows={4}
-                    className="resize-none"
-                    {...register("description", { required: true })}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="video-file">Video File</Label>
-                  <Input
-                    id="video-file"
-                    type="file"
-                    accept="video/*"
-                    {...register("file", { required: true })}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Select a video file to upload
-                  </p>
-                </div>
-
-                {uploading && (
-                  <div className="space-y-2 py-1">
-                    <div className="flex justify-between text-sm text-muted-foreground">
-                      <span>Uploading…</span>
-                      <span>{uploadProgress != null ? `${uploadProgress}%` : "0%"}</span>
-                    </div>
-                    <div className="h-2.5 w-full rounded-full bg-muted overflow-hidden border border-border">
-                      <div
-                        className="h-full bg-primary transition-[width] duration-200 ease-out min-w-[2%]"
-                        style={{ width: `${uploadProgress ?? 0}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                <DialogFooter>
-                  <Button type="submit" disabled={uploading}>
-                    {uploading ? "Uploading…" : "Upload Video"}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-
-          {videos.length > 0 && (
-            <Button
-              variant="destructive"
-              onClick={handleDeleteAll}
-              disabled={deletingAll}
+          <div className="flex flex-wrap items-center gap-2">
+            <Dialog
+              open={uploadDialogOpen}
+              onOpenChange={(open) => {
+                setUploadDialogOpen(open);
+                if (!open) setUploadProgress(null);
+              }}
             >
-              {deletingAll ? "Deleting…" : "Delete all videos"}
-            </Button>
-          )}
+              <DialogTrigger asChild>
+                <Button disabled={uploading} size="lg" className="gap-2">
+                  <Upload className="size-4" />
+                  {uploading ? "Uploading…" : "Upload Video"}
+                </Button>
+              </DialogTrigger>
+
+              <DialogContent className="sm:max-w-[500px]">
+                <DialogHeader>
+                  <DialogTitle className="text-2xl">Upload Video</DialogTitle>
+                  <DialogDescription>
+                    Share your video with the world
+                  </DialogDescription>
+                </DialogHeader>
+
+                <form className="space-y-5 mt-2" onSubmit={handleSubmit(onSubmit)}>
+                  <div className="space-y-2">
+                    <Label htmlFor="title" className="text-sm font-medium">
+                      Title
+                    </Label>
+                    <Input
+                      id="title"
+                      placeholder="My awesome video"
+                      {...register("title", { required: true })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="description" className="text-sm font-medium">
+                      Description
+                    </Label>
+                    <Textarea
+                      id="description"
+                      rows={4}
+                      className="resize-none"
+                      placeholder="Tell viewers about your video..."
+                      {...register("description", { required: true })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="video-file" className="text-sm font-medium">
+                      Video File
+                    </Label>
+                    <Input
+                      id="video-file"
+                      type="file"
+                      accept="video/*"
+                      {...register("file", { required: true })}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Max file size: {MAX_SIZE_MB}MB
+                    </p>
+                  </div>
+
+                  {uploading && (
+                    <div className="space-y-2 py-2">
+                      <div className="flex justify-between text-sm font-medium">
+                        <span>Uploading...</span>
+                        <span className="text-primary">
+                          {uploadProgress != null ? `${uploadProgress}%` : "0%"}
+                        </span>
+                      </div>
+                      <div className="h-3 w-full rounded-full bg-muted overflow-hidden">
+                        <div
+                          className="h-full bg-primary transition-all duration-300 ease-out"
+                          style={{ width: `${uploadProgress ?? 0}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <DialogFooter>
+                    <Button type="submit" disabled={uploading} className="w-full gap-2">
+                      <Upload className="size-4" />
+                      {uploading ? "Uploading…" : "Upload Video"}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+
+            {videos.length > 0 && (
+              <Button
+                variant="destructive"
+                onClick={handleDeleteAll}
+                disabled={deletingAll}
+                size="lg"
+                className="gap-2"
+              >
+                <Trash2 className="size-4" />
+                {deletingAll ? "Deleting…" : "Delete All"}
+              </Button>
+            )}
+          </div>
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-12">
-            <Spinner className="size-8" />
+          <div className="flex justify-center items-center py-20">
+            <div className="text-center space-y-4">
+              <Spinner className="size-10 mx-auto" />
+              <p className="text-sm text-muted-foreground">Loading your videos...</p>
+            </div>
           </div>
         ) : videos.length === 0 ? (
-          <p className="text-muted-foreground text-center py-12">
-            No videos yet. Upload one to get started.
-          </p>
+          <div className="flex flex-col items-center justify-center py-20 px-4">
+            <div className="flex items-center justify-center size-20 rounded-full bg-muted mb-6">
+              <VideoIcon className="size-10 text-muted-foreground" />
+            </div>
+            <h3 className="text-2xl font-semibold mb-2">No videos yet</h3>
+            <p className="text-muted-foreground text-center mb-6 max-w-md">
+              Start building your video library by uploading your first video
+            </p>
+            <Button
+              onClick={() => setUploadDialogOpen(true)}
+              size="lg"
+              className="gap-2"
+            >
+              <Upload className="size-4" />
+              Upload Your First Video
+            </Button>
+          </div>
         ) : (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {videos.map((video) => (
               <VideoCard
                 key={video.id}
                 video={video}
-                onClick={() => setSelectedVideo(video)}
+                onClick={() => handleVideoClick(video)}
                 onDelete={() => handleDeleteVideo(video.id)}
                 deleting={deletingId === video.id}
               />
@@ -247,12 +299,6 @@ export default function Home() {
           </div>
         )}
       </main>
-
-      <VideoPlayerDialog
-        video={selectedVideo}
-        open={!!selectedVideo}
-        onOpenChange={(open) => !open && setSelectedVideo(null)}
-      />
     </div>
   );
 }
