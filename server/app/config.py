@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     R2_ACCESS_KEY: str
     R2_SECRET_KEY: str
     R2_BUCKET_NAME: str
-    R2_PUBLIC_URL: str  # e.g., https://pub-abc123.r2.dev
+    R2_PUBLIC_URL: str
 
     ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:5173"
 
